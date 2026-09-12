@@ -1,0 +1,102 @@
+name: Template Self Test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: template-self-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  self-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO Core
+        run: pip install --requirement tools/platformio/requirements.txt
+      - name: Create synthetic PlatformIO projects
+        shell: python
+        run: |
+          from pathlib import Path
+          projects = [
+              "firmware/controller",
+              "tests/sensors/tof",
+              "experiments/demo",
+          ]
+          for relative in projects:
+              project = Path("projects") / relative
+              (project / "src").mkdir(parents=True, exist_ok=True)
+              (project / "platformio.ini").write_text(
+                  "[env:native]\nplatform = native\n", encoding="utf-8"
+              )
+              (project / "src/main.cpp").write_text(
+                  "int main() { return 0; }\n", encoding="utf-8"
+              )
+
+      - name: Validate tooling syntax
+        shell: pwsh
+        run: |
+          python -m py_compile tools/platformio/pio-workspace-bootstrap.py tools/platformio/pio-workspace-switch.py tools/platformio/maintenance.py
+          $files = @('tools/platformio/platformio-common.ps1', 'tools/platformio/project-discovery.ps1', 'tools/platformio/build-all.ps1', 'tools/platformio/maintenance-gui.ps1')
+          foreach ($file in $files) {
+            $tokens = $null; $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($file, [ref]$tokens, [ref]$errors)
+            if ($errors.Count -gt 0) { throw "$file has parse errors: $($errors.Message -join '; ')" }
+          }
+          bash -n tools/platformio/maintenance-gui.sh
+          bash -n "PlatformIO Maintenance.command"
+          python -c "import json,pathlib; d=json.loads(pathlib.Path('.vscode/tasks.json').read_text(encoding='utf-8')); assert d['tasks'][0]['label']=='PlatformIO: Maintenance'"
+
+      - name: Generate and validate workspace
+        shell: pwsh
+        run: |
+          python tools/platformio/pio-workspace-bootstrap.py .
+          python -c "import json,pathlib; p=pathlib.Path('.pio/workspace/platformio-workspace.code-workspace'); d=json.loads(p.read_text(encoding='utf-8')); names=[x['name'] for x in d['folders'][1:]]; assert names==['PJ / experiments / demo','FW / controller','TEST / sensors / tof'], names"
+          $listed = @(python tools/platformio/maintenance.py list)
+          if ($listed.Count -ne 3) { throw "Expected 3 projects, got $($listed.Count)" }
+
+      - name: Build all synthetic projects
+        shell: pwsh
+        run: ./tools/platformio/build-all.ps1
+
+      - name: Repair one synthetic project
+        run: python tools/platformio/maintenance.py repair projects/tests/sensors/tof
+      - name: Create external project for Import test
+        shell: python
+        run: |
+          from pathlib import Path
+          project = Path('.pio/self-test/external-project')
+          (project / 'src').mkdir(parents=True, exist_ok=True)
+          (project / '.git').mkdir(parents=True, exist_ok=True)
+          (project / '.vscode').mkdir(parents=True, exist_ok=True)
+          (project / 'platformio.ini').write_text('[env:native]\nplatform = native\n', encoding='utf-8')
+          (project / 'src/main.cpp').write_text('int main() { return 0; }\n', encoding='utf-8')
+          (project / '.git/sentinel').write_text('do not copy\n', encoding='utf-8')
+          (project / '.vscode/local.json').write_text('{}\n', encoding='utf-8')
+          (project / 'local-only.log').write_text('do not copy\n', encoding='utf-8')
+
+      - name: Import external project and validate exclusions
+        shell: pwsh
+        run: |
+          python tools/platformio/maintenance.py import .pio/self-test/external-project projects/tests/imports
+          if (Test-Path 'projects/tests/imports/external-project/.git') { throw '.git was copied' }
+          if (Test-Path 'projects/tests/imports/external-project/.vscode/local.json') { throw 'local VS Code config was copied' }
+          if (Test-Path 'projects/tests/imports/external-project/local-only.log') { throw 'log file was copied' }
+          python tools/platformio/pio-workspace-bootstrap.py .
+          python -c "import json,pathlib; d=json.loads(pathlib.Path('.pio/workspace/platformio-workspace.code-workspace').read_text(encoding='utf-8')); names=[x['name'] for x in d['folders'][1:]]; assert 'TEST / imports / external-project' in names"
+
+      - name: Final build of all projects
+        shell: pwsh
+        run: ./tools/platformio/build-all.ps1

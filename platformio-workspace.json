@@ -1,0 +1,7 @@
+{
+  "workspaceName": "platformio-workspace",
+  "groups": [
+    { "path": "firmware", "label": "FW" },
+    { "path": "tests", "label": "TEST" }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "PlatformIO: Maintenance",
+      "type": "process",
+      "command": "echo",
+      "args": ["PlatformIO maintenance GUI supports Windows and macOS."],
+      "windows": {
+        "command": "powershell.exe",
+        "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\tools\\platformio\\maintenance-gui.ps1"]
+      },
+      "osx": {
+        "command": "bash",
+        "args": ["${workspaceFolder}/tools/platformio/maintenance-gui.sh"]
+      },
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": [],
+      "presentation": { "reveal": "never", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "PlatformIO: Repair project",
+      "type": "process",
+      "command": "echo",
+      "args": ["PlatformIO repair GUI supports Windows and macOS."],
+      "windows": {
+        "command": "powershell.exe",
+        "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\tools\\platformio\\maintenance-gui.ps1", "-Action", "repair"]
+      },
+      "osx": {
+        "command": "bash",
+        "args": ["${workspaceFolder}/tools/platformio/maintenance-gui.sh", "repair"]
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "PlatformIO: Import project",
+      "type": "process",
+      "command": "echo",
+      "args": ["PlatformIO import GUI supports Windows and macOS."],
+      "windows": {
+        "command": "powershell.exe",
+        "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\tools\\platformio\\maintenance-gui.ps1", "-Action", "import"]
+      },
+      "osx": {
+        "command": "bash",
+        "args": ["${workspaceFolder}/tools/platformio/maintenance-gui.sh", "import"]
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "PlatformIO: Repair all projects",
+      "type": "process",
+      "command": "echo",
+      "args": ["PlatformIO repair-all GUI supports Windows and macOS."],
+      "windows": {
+        "command": "powershell.exe",
+        "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\tools\\platformio\\maintenance-gui.ps1", "-Action", "repair-all"]
+      },
+      "osx": {
+        "command": "bash",
+        "args": ["${workspaceFolder}/tools/platformio/maintenance-gui.sh", "repair-all"]
+      },
+      "problemMatcher": []
+    }
+  ]
+}

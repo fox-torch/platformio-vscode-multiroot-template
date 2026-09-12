@@ -1,0 +1,34 @@
+# PlatformIO generated files
+.pio/
+.pioenvs/
+.piolibdeps/
+compile_commands.json
+
+# Editors and OS
+.vscode/*
+!.vscode/extensions.json
+!.vscode/tasks.json
+.idea/
+*.code-workspace
+.DS_Store
+Thumbs.db
+
+# Secrets and local machine settings
+.env
+.env.*
+!.env.example
+secrets/
+credentials.h
+credentials.cpp
+include/credentials.h
+ports.local.json
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+logs/
+
+# Python
+__pycache__/
+*.pyc
